@@ -1,0 +1,11 @@
+{
+	"files.associations": {
+		"tusb.h": "c",
+		"tusb_common.h": "c",
+		"binary_info.h": "c",
+		"vreg.h": "c",
+		"board.h": "c",
+		"type_traits": "c",
+		"stdlib.h": "c"
+	}
+}
