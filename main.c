@@ -29,29 +29,6 @@
 
 #define LED_PIN 25
 
-int main(void)
-{
-	vreg_set_voltage(VREG_VOLTAGE_1_30);
-	set_sys_clock_khz(266000, true);
-
-	uint32_t freq = clock_get_hz(clk_sys);
-	clock_configure(clk_peri, 0, CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLK_SYS, freq, freq);
-
-	stdio_init_all();
-
-	gpio_init(LED_PIN);
-	gpio_set_dir(LED_PIN, GPIO_OUT);
-
-	xbox_init();
-
-	tusb_init();
-
-	while (1)
-		tud_task();
-
-	return 0;
-}
-
 // Invoked when device is mounted
 void tud_mount_cb(void)
 {
@@ -118,6 +95,7 @@ void led_blink(void)
 #define ISD1200_ERASE_FLASH 0x08
 #define ISD1200_WRITE_FLASH 0x09
 #define ISD1200_PLAY_VOICE 0x10
+#define READ_FLASH_STREAM 0x11
 
 #pragma pack(push, 1)
 struct cmd
@@ -126,6 +104,38 @@ struct cmd
 	uint32_t lba;
 };
 #pragma pack(pop)
+
+bool do_stream = false;
+uint32_t stream_offset = 0;
+uint32_t stream_end = 0;
+void stream()
+{
+	if (do_stream)
+	{
+		if (stream_offset >= stream_end)
+		{
+			do_stream = false;
+			return;
+		}
+
+		if (tud_cdc_write_available() < 4 + 0x210)
+			return;
+
+		static uint8_t buffer[4 + 0x210];
+		uint32_t ret = xbox_nand_read_block(stream_offset, &buffer[4], &buffer[4 + 0x200]);
+		*(uint32_t *)buffer = ret;
+		if (ret == 0)
+		{
+			tud_cdc_write(buffer, sizeof(buffer));
+			++stream_offset;
+		}
+		else
+		{
+			tud_cdc_write(&ret, 4);
+			do_stream = false;
+		}
+	}
+}
 
 // Invoked when CDC interface received data from host
 void tud_cdc_rx_cb(uint8_t itf)
@@ -219,6 +229,12 @@ void tud_cdc_rx_cb(uint8_t itf)
 			uint8_t fc = 0;
 			tud_cdc_write(&fc, 1);
 		}
+		if (cmd.cmd == READ_FLASH_STREAM)
+		{
+			do_stream = true;
+			stream_offset = 0;
+			stream_end = cmd.lba;
+		}
 
 		tud_cdc_write_flush();
 	}
@@ -230,3 +246,28 @@ void tud_cdc_tx_complete_cb(uint8_t itf)
 	led_blink();
 }
 
+int main(void)
+{
+	vreg_set_voltage(VREG_VOLTAGE_1_30);
+	set_sys_clock_khz(266000, true);
+
+	uint32_t freq = clock_get_hz(clk_sys);
+	clock_configure(clk_peri, 0, CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLK_SYS, freq, freq);
+
+	stdio_init_all();
+
+	gpio_init(LED_PIN);
+	gpio_set_dir(LED_PIN, GPIO_OUT);
+
+	xbox_init();
+
+	tusb_init();
+
+	while (1)
+	{
+		tud_task();
+		stream();
+	}
+
+	return 0;
+}
