@@ -27,9 +27,9 @@ tusb_desc_device_t const desc_device =
 
 		// Use Interface Association Descriptor (IAD) for CDC
 		// As required by USB Specs IAD's subclass must be common class (2) and protocol must be IAD (1)
-		.bDeviceClass = TUSB_CLASS_MISC,
-		.bDeviceSubClass = MISC_SUBCLASS_COMMON,
-		.bDeviceProtocol = MISC_PROTOCOL_IAD,
+		.bDeviceClass = TUSB_CLASS_CDC,
+		.bDeviceSubClass = 0,
+		.bDeviceProtocol = 0,
 
 		.bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE,
 
@@ -61,7 +61,7 @@ enum
 	ITF_NUM_TOTAL
 };
 
-#define CONFIG_TOTAL_LEN (TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN)
+#define CONFIG_TOTAL_LEN (TUD_CONFIG_DESC_LEN + (9 + 5 + 5 + 4 + 5 + 7 + 9 + 7 + 7))
 
 #define EPNUM_CDC_NOTIF 0x81
 #define EPNUM_CDC_OUT 0x02
@@ -72,15 +72,10 @@ uint8_t const desc_fs_configuration[] =
 	// Config number, interface count, string index, total length, attribute, power in mA
 	TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL, 0, CONFIG_TOTAL_LEN, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
 
-	// Interface number, string index, EP notification address and size, EP data address (out, in) and size.
-	// TUD_CDC_DESCRIPTOR(ITF_NUM_CDC, 4, EPNUM_CDC_NOTIF, 8, EPNUM_CDC_OUT, EPNUM_CDC_IN, 64),
-
-	/* Interface Associate */
-	8, TUSB_DESC_INTERFACE_ASSOCIATION, ITF_NUM_CDC, 2, TUSB_CLASS_CDC, CDC_COMM_SUBCLASS_ABSTRACT_CONTROL_MODEL, CDC_COMM_PROTOCOL_NONE, 0,
 	/* CDC Control Interface */
-	9, TUSB_DESC_INTERFACE, ITF_NUM_CDC, 0, 1, TUSB_CLASS_CDC, CDC_COMM_SUBCLASS_ABSTRACT_CONTROL_MODEL, CDC_COMM_PROTOCOL_NONE, 4,
+	9, TUSB_DESC_INTERFACE, ITF_NUM_CDC, 0, 1, TUSB_CLASS_CDC, CDC_COMM_SUBCLASS_ABSTRACT_CONTROL_MODEL, CDC_COMM_PROTOCOL_ATCOMMAND, 0,
 	/* CDC Header */
-	5, TUSB_DESC_CS_INTERFACE, CDC_FUNC_DESC_HEADER, U16_TO_U8S_LE(0x0120),
+	5, TUSB_DESC_CS_INTERFACE, CDC_FUNC_DESC_HEADER, U16_TO_U8S_LE(0x110),
 	/* CDC Call */
 	5, TUSB_DESC_CS_INTERFACE, CDC_FUNC_DESC_CALL_MANAGEMENT, 0, ITF_NUM_CDC_DATA,
 	/* CDC ACM: support line request */
@@ -118,7 +113,6 @@ char const *string_desc_arr[] =
 		"PicoFlasher",				// 1: Manufacturer
 		"PicoFlasher Device",		// 2: Product
 		"123456",					// 3: Serials, should use chip ID
-		"PicoFlasher CDC",			// 4: CDC Interface
 };
 
 static uint16_t _desc_str[32];
