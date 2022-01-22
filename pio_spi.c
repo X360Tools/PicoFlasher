@@ -72,6 +72,8 @@ void __time_critical_func(pio_spi_read8_blocking)(const pio_spi_inst_t *spi, uin
 	size_t tx_remain = len, rx_remain = len;
 	io_rw_8 *txfifo = (io_rw_8 *)&spi->pio->txf[spi->sm];
 	io_rw_8 *rxfifo = (io_rw_8 *)&spi->pio->rxf[spi->sm];
+	if (spi->order == SPI_LSB_FIRST)
+		rxfifo += 3;
 	while (tx_remain || rx_remain)
 	{
 		if (tx_remain && !pio_sm_is_tx_fifo_full(spi->pio, spi->sm))
@@ -81,10 +83,7 @@ void __time_critical_func(pio_spi_read8_blocking)(const pio_spi_inst_t *spi, uin
 		}
 		if (rx_remain && !pio_sm_is_rx_fifo_empty(spi->pio, spi->sm))
 		{
-			if (spi->order == SPI_LSB_FIRST)
-				*dst++ = *rxfifo >> 24;
-			else
-				*dst++ = *rxfifo;
+			*dst++ = *rxfifo;
 			-- rx_remain;
 		}
 	}
@@ -95,7 +94,9 @@ void __time_critical_func(pio_spi_write8_read8_blocking)(const pio_spi_inst_t *s
 {
 	size_t tx_remain = len, rx_remain = len;
 	io_rw_8 *txfifo = (io_rw_8 *)&spi->pio->txf[spi->sm];
-	io_rw_32 *rxfifo = (io_rw_32 *)&spi->pio->rxf[spi->sm];
+	io_rw_8 *rxfifo = (io_rw_8 *)&spi->pio->rxf[spi->sm];
+	if (spi->order == SPI_LSB_FIRST)
+		rxfifo += 3;
 	while (tx_remain || rx_remain)
 	{
 		if (tx_remain && !pio_sm_is_tx_fifo_full(spi->pio, spi->sm))
@@ -105,10 +106,7 @@ void __time_critical_func(pio_spi_write8_read8_blocking)(const pio_spi_inst_t *s
 		}
 		if (rx_remain && !pio_sm_is_rx_fifo_empty(spi->pio, spi->sm))
 		{
-			if (spi->order == SPI_LSB_FIRST)
-				*dst++ = *rxfifo >> 24;
-			else
-				*dst++ = *rxfifo;
+			*dst++ = *rxfifo;
 			--rx_remain;
 		}
 	}
