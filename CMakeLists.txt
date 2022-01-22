@@ -19,6 +19,8 @@ add_executable(${PROJECT_NAME}
 	spiex.c
 	xbox.c
 	pio_spi.c
+	nuvoton_spi.c
+	isd1200.c
 )
 
 # Create map/bin/hex/uf2 files

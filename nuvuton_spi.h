@@ -14,20 +14,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __PINS_H__
-#define __PINS_H__
+#ifndef __NUVOTON_SPI_H__
+#define __NUVOTON_SPI_H__
 
-#define SPI_MISO 16
-#define SPI_SS_N 17
-#define SPI_CLK 18
-#define SPI_MOSI 19
-#define SMC_DBG_EN 20
-#define SMC_RST_XDK_N 21
+void nuvoton_spi_init();
+void nuvoton_spi_deinit();
 
-#define NUVOTON_SPI_RDY 11 // FT2V4
-#define NUVOTON_SPI_MISO 12 // FT2R7
-#define NUVOTON_SPI_SS_N 13 // FT2R6
-#define NUVOTON_SPI_CLK 14 // FT2T4
-#define NUVOTON_SPI_MOSI 15 // FT2T5
+void nuvoton_spi_transfer(uint8_t *buffer, uint32_t length);
 
 #endif

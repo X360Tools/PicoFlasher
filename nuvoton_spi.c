@@ -14,20 +14,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __PINS_H__
-#define __PINS_H__
+#include "pico/stdlib.h"
+#include "pins.h"
+#include "pio_spi.h"
 
-#define SPI_MISO 16
-#define SPI_SS_N 17
-#define SPI_CLK 18
-#define SPI_MOSI 19
-#define SMC_DBG_EN 20
-#define SMC_RST_XDK_N 21
+pio_spi_inst_t nuvoton_spi;
 
-#define NUVOTON_SPI_RDY 11 // FT2V4
-#define NUVOTON_SPI_MISO 12 // FT2R7
-#define NUVOTON_SPI_SS_N 13 // FT2R6
-#define NUVOTON_SPI_CLK 14 // FT2T4
-#define NUVOTON_SPI_MOSI 15 // FT2T5
+void nuvoton_spi_init()
+{
+	pio_spi_init(&nuvoton_spi, pio1, 0, 1.f, 8, SPI_MSB_FIRST, true, true, NUVOTON_SPI_SS_N, NUVOTON_SPI_MOSI, NUVOTON_SPI_MISO);
+}
 
-#endif
+void nuvoton_spi_deinit()
+{
+	pio_remove_program(nuvoton_spi.pio, &spi_cpha1_cs_program, nuvoton_spi.prog);
+}
+
+void nuvoton_spi_transfer(uint8_t *buffer, uint32_t length)
+{
+	pio_spi_write8_read8_blocking(&nuvoton_spi, buffer, buffer, length);
+}

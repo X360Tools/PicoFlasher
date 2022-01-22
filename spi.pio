@@ -64,6 +64,8 @@ public entry_point:                 ; Must set X,Y to n-2 before starting!
 .side_set 2
 
 .wrap_target
+byteloop:
+	wait 1 GPIO 11     side 0x0     ; hack for nuvoton RDY/BSYB
 bitloop:
     out pins, 1        side 0x2 [1]
     in pins, 1         side 0x0
@@ -72,11 +74,11 @@ bitloop:
     out pins, 1        side 0x2
     mov x, y           side 0x2
     in pins, 1         side 0x0
-    jmp !osre bitloop  side 0x0
+    jmp !osre byteloop  side 0x0
 
 public entry_point:                 ; Must set X,Y to n-2 before starting!
     pull ifempty       side 0x1 [1] ; Block with CSn high (minimum 2 cycles)
-    nop                side 0x0 [1]; CSn front porch
+    nop                side 0x0 [1] ; CSn front porch
 .wrap
 
 % c-sdk {
