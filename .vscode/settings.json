@@ -6,6 +6,7 @@
 		"vreg.h": "c",
 		"board.h": "c",
 		"type_traits": "c",
-		"stdlib.h": "c"
+		"stdlib.h": "c",
+		"pio_spi.h": "c"
 	}
 }

@@ -25,7 +25,16 @@ typedef struct pio_spi_inst
 	PIO pio;
 	uint sm;
 	uint prog;
+	uint order;
 } pio_spi_inst_t;
+
+typedef enum pio_spi_order
+{
+	SPI_LSB_FIRST = 0,
+	SPI_MSB_FIRST
+} pio_spi_order_t;
+
+void pio_spi_init(pio_spi_inst_t *spi, PIO pio, uint sm, float freq, uint n_bits, pio_spi_order_t order, bool cpha, bool cpol, uint pin_ss, uint pin_mosi, uint pin_miso);
 
 void pio_spi_write8_blocking(const pio_spi_inst_t *spi, const uint8_t *src, size_t len);
 

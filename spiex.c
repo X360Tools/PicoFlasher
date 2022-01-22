@@ -17,25 +17,12 @@
 #include "pico/stdlib.h"
 #include "pins.h"
 #include "pio_spi.h"
-#include "hardware/clocks.h"
 
-pio_spi_inst_t spi = {
-	.pio = pio0,
-	.sm = 0,
-};
+pio_spi_inst_t spi;
 
 void spiex_init()
 {
-	spi.prog = pio_add_program(spi.pio, &spi_cpha0_cs_program);
-	// pio_spi_cs_init(spi.pio, spi.sm, spi.prog, 8, 3.0f, 0, 0, SPI_SS_N, SPI_MOSI, SPI_MISO, 0);
-
-	float freq = clock_get_hz(clk_sys);
-	freq /= 4000000.f;
-
-	// freq /= 12.f;
-	freq /= 18.f;
-
-	pio_spi_cs_init(spi.pio, spi.sm, spi.prog, 8, freq, 0, 0, SPI_SS_N, SPI_MOSI, SPI_MISO, 0);
+	pio_spi_init(&spi, pio0, 0, 18.f, 8, SPI_LSB_FIRST, false, false, SPI_SS_N, SPI_MOSI, SPI_MISO);
 }
 
 void spiex_deinit()

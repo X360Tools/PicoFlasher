@@ -15,6 +15,7 @@
  */
 
 #include "pio_spi.h"
+#include "hardware/clocks.h"
 
 // Just 8 bit functions provided here. The PIO program supports any frame size
 // 1...32, but the software to do the necessary FIFO shuffling is left as an
@@ -24,6 +25,25 @@
 // - Do shifts when reading from the FIFO, for general case n != 8, 16, 32
 // - Do a narrow read at a one halfword or 3 byte offset for n == 16, 8
 // in order to get the read data correctly justified.
+
+void pio_spi_init(pio_spi_inst_t *spi, PIO pio, uint sm, float freq, uint n_bits, pio_spi_order_t order, bool cpha, bool cpol, uint pin_ss, uint pin_mosi, uint pin_miso)
+{
+	spi->pio = pio;
+	spi->sm = sm;
+	spi->order = order;
+
+	if (!cpha)
+		spi->prog = pio_add_program(spi->pio, &spi_cpha0_cs_program);
+	else
+		spi->prog = pio_add_program(spi->pio, &spi_cpha1_cs_program);
+
+	float clockdiv = clock_get_hz(clk_sys);
+	clockdiv /= 4000000.f;
+
+	clockdiv /= freq;
+
+	pio_spi_cs_init(pio, sm, spi->prog, n_bits, clockdiv, cpha, cpol, pin_ss, pin_mosi, pin_miso, order);
+}
 
 void __time_critical_func(pio_spi_write8_blocking)(const pio_spi_inst_t *spi, const uint8_t *src, size_t len)
 {
@@ -61,8 +81,11 @@ void __time_critical_func(pio_spi_read8_blocking)(const pio_spi_inst_t *spi, uin
 		}
 		if (rx_remain && !pio_sm_is_rx_fifo_empty(spi->pio, spi->sm))
 		{
-			*dst++ = *rxfifo >> 24;
-			--rx_remain;
+			if (spi->order == SPI_LSB_FIRST)
+				*dst++ = *rxfifo >> 24;
+			else
+				*dst++ = *rxfifo;
+			-- rx_remain;
 		}
 	}
 }
@@ -82,7 +105,10 @@ void __time_critical_func(pio_spi_write8_read8_blocking)(const pio_spi_inst_t *s
 		}
 		if (rx_remain && !pio_sm_is_rx_fifo_empty(spi->pio, spi->sm))
 		{
-			*dst++ = *rxfifo >> 24;
+			if (spi->order == SPI_LSB_FIRST)
+				*dst++ = *rxfifo >> 24;
+			else
+				*dst++ = *rxfifo;
 			--rx_remain;
 		}
 	}

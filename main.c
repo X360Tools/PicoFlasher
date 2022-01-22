@@ -62,7 +62,7 @@ void tud_mount_cb(void)
 }
 
 // Invoked when device is unmounted
-void tud_umount_cb(void) 
+void tud_umount_cb(void)
 {
 	xbox_start_smc();
 
@@ -154,7 +154,7 @@ void tud_cdc_rx_cb(uint8_t itf)
 			uint32_t ret = xbox_nand_read_block(cmd.lba, buffer, &buffer[0x200]);
 			tud_cdc_write(&ret, 4);
 			if (ret == 0)
-				tud_cdc_write(buffer, 0x210);
+				tud_cdc_write(buffer, sizeof(buffer));
 		}
 		else if (cmd.cmd == WRITE_FLASH)
 		{
@@ -163,7 +163,6 @@ void tud_cdc_rx_cb(uint8_t itf)
 			if (count != sizeof(buffer))
 				return;
 			uint32_t ret = xbox_nand_write_block(cmd.lba, buffer, &buffer[0x200]);
-			printf("Write ret: %x\n", ret);
 			tud_cdc_write(&ret, 4);
 		}
 
