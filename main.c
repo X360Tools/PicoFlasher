@@ -22,6 +22,7 @@
 #include "hardware/vreg.h"
 #include "hardware/clocks.h"
 #include "pico/stdlib.h"
+#include "pico/bootrom.h"
 
 #include "tusb.h"
 #include "xbox.h"
@@ -85,6 +86,7 @@ void led_blink(void)
 	led_state = 1 - led_state;
 }
 
+#define GET_VERSION 0x00
 #define GET_FLASH_CONFIG 0x01
 #define READ_FLASH 0x02
 #define WRITE_FLASH 0x03
@@ -96,6 +98,7 @@ void led_blink(void)
 #define ISD1200_WRITE_FLASH 0x09
 #define ISD1200_PLAY_VOICE 0x10
 #define READ_FLASH_STREAM 0x11
+#define REBOOT_TO_BOOTLOADER 0xFE
 
 #pragma pack(push, 1)
 struct cmd
@@ -163,7 +166,12 @@ void tud_cdc_rx_cb(uint8_t itf)
 		if (count != sizeof(cmd))
 			return;
 
-		if (cmd.cmd == GET_FLASH_CONFIG)
+		if (cmd.cmd == GET_VERSION)
+		{
+			uint32_t ver = 1;
+			tud_cdc_write(&ver, 4);
+		}
+		else if (cmd.cmd == GET_FLASH_CONFIG)
 		{
 			uint32_t fc = xbox_get_flash_config();
 			tud_cdc_write(&fc, 4);
@@ -223,17 +231,21 @@ void tud_cdc_rx_cb(uint8_t itf)
 			uint32_t ret = 0;
 			tud_cdc_write(&ret, 4);
 		}
-		if (cmd.cmd == ISD1200_PLAY_VOICE)
+		else if(cmd.cmd == ISD1200_PLAY_VOICE)
 		{
 			isd1200_play_vp(cmd.lba);
 			uint8_t fc = 0;
 			tud_cdc_write(&fc, 1);
 		}
-		if (cmd.cmd == READ_FLASH_STREAM)
+		else if(cmd.cmd == READ_FLASH_STREAM)
 		{
 			do_stream = true;
 			stream_offset = 0;
 			stream_end = cmd.lba;
+		}
+		else if (cmd.cmd == REBOOT_TO_BOOTLOADER)
+		{
+			reset_usb_boot(0, 0);
 		}
 
 		tud_cdc_write_flush();
