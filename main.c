@@ -90,14 +90,18 @@ void led_blink(void)
 #define GET_FLASH_CONFIG 0x01
 #define READ_FLASH 0x02
 #define WRITE_FLASH 0x03
-#define ISD1200_INIT 0x04
-#define ISD1200_DEINIT 0x05
-#define ISD1200_READ_ID 0x06
-#define ISD1200_READ_FLASH 0x07
-#define ISD1200_ERASE_FLASH 0x08
-#define ISD1200_WRITE_FLASH 0x09
-#define ISD1200_PLAY_VOICE 0x10
-#define READ_FLASH_STREAM 0x11
+#define READ_FLASH_STREAM 0x04
+
+#define ISD1200_INIT 0xA0
+#define ISD1200_DEINIT 0xA1
+#define ISD1200_READ_ID 0xA2
+#define ISD1200_READ_FLASH 0xA3
+#define ISD1200_ERASE_FLASH 0xA4
+#define ISD1200_WRITE_FLASH 0xA5
+#define ISD1200_PLAY_VOICE 0xA6
+#define ISD1200_EXEC_MACRO 0xA7
+#define ISD1200_RESET 0xA8
+
 #define REBOOT_TO_BOOTLOADER 0xFE
 
 #pragma pack(push, 1)
@@ -168,7 +172,7 @@ void tud_cdc_rx_cb(uint8_t itf)
 
 		if (cmd.cmd == GET_VERSION)
 		{
-			uint32_t ver = 1;
+			uint32_t ver = 2;
 			tud_cdc_write(&ver, 4);
 		}
 		else if (cmd.cmd == GET_FLASH_CONFIG)
@@ -192,6 +196,12 @@ void tud_cdc_rx_cb(uint8_t itf)
 				return;
 			uint32_t ret = xbox_nand_write_block(cmd.lba, buffer, &buffer[0x200]);
 			tud_cdc_write(&ret, 4);
+		}
+		else if (cmd.cmd == READ_FLASH_STREAM)
+		{
+			do_stream = true;
+			stream_offset = 0;
+			stream_end = cmd.lba;
 		}
 		if (cmd.cmd == ISD1200_INIT)
 		{
@@ -231,17 +241,23 @@ void tud_cdc_rx_cb(uint8_t itf)
 			uint32_t ret = 0;
 			tud_cdc_write(&ret, 4);
 		}
-		else if(cmd.cmd == ISD1200_PLAY_VOICE)
+		else if (cmd.cmd == ISD1200_PLAY_VOICE)
 		{
 			isd1200_play_vp(cmd.lba);
 			uint8_t fc = 0;
 			tud_cdc_write(&fc, 1);
 		}
-		else if(cmd.cmd == READ_FLASH_STREAM)
+		else if (cmd.cmd == ISD1200_EXEC_MACRO)
 		{
-			do_stream = true;
-			stream_offset = 0;
-			stream_end = cmd.lba;
+			isd1200_exe_vm(cmd.lba);
+			uint8_t fc = 0;
+			tud_cdc_write(&fc, 1);
+		}
+		if (cmd.cmd == ISD1200_RESET)
+		{
+			isd1200_reset();
+			uint8_t fc = 0;
+			tud_cdc_write(&fc, 1);
 		}
 		else if (cmd.cmd == REBOOT_TO_BOOTLOADER)
 		{

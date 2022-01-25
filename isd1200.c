@@ -116,6 +116,13 @@ void isd1200_power_down()
 	nuvoton_spi_transfer(buf, sizeof(buf));
 }
 
+void isd1200_reset()
+{
+	uint8_t buf[] = {CMD_RESET};
+
+	nuvoton_spi_transfer(buf, sizeof(buf));
+}
+
 uint8_t isd1200_read_id()
 {
 	return dev_id;
@@ -124,6 +131,15 @@ uint8_t isd1200_read_id()
 void isd1200_play_vp(uint16_t index)
 {
 	uint8_t buf[] = {CMD_PLAY_VP, 0x00, 0x00};
+
+	*(uint16_t *)&buf[1] = __builtin_bswap16(index);
+
+	nuvoton_spi_transfer(buf, sizeof(buf));
+}
+
+void isd1200_exe_vm(uint16_t index)
+{
+	uint8_t buf[] = {CMD_EXE_VM, 0x00, 0x00};
 
 	*(uint16_t *)&buf[1] = __builtin_bswap16(index);
 
