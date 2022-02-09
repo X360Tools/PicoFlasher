@@ -153,8 +153,24 @@ int xbox_nand_erase_block(uint32_t lba)
 
 int xbox_nand_write_block(uint32_t lba, uint8_t *buffer, uint8_t *spare)
 {
-	// erase ereases 0x4000 bytes
-	if (lba % 0x20 == 0)
+	int flash_config = xbox_get_flash_config();
+
+	int major = (flash_config >> 17) & 3;
+	int minor = (flash_config >> 4) & 3;
+
+	int blocksize = 0x4000;
+	if (major >= 1)
+	{
+		if (minor == 2)
+			blocksize = 0x20000;
+		else if (minor == 3)
+			blocksize = 0x40000;
+	}
+
+	int sectors_in_block = blocksize  / 0x200;
+
+	// erase ereases `blocksize` bytes
+	if (lba % sectors_in_block == 0)
 	{
 		int ret = xbox_nand_erase_block(lba);
 		if (ret)
