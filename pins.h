@@ -30,4 +30,9 @@
 #define NUVOTON_SPI_CLK 14 // FT2T4
 #define NUVOTON_SPI_MOSI 15 // FT2T5
 
+#define MMC_RST_PIN 9
+#define MMC_CLK_PIN 8
+#define MMC_CMD_PIN 7
+#define MMC_DAT0_PIN 6
+
 #endif

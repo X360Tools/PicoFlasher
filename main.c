@@ -27,6 +27,9 @@
 #include "tusb.h"
 #include "xbox.h"
 #include "isd1200.h"
+#include "sdio.h"
+#include "pins.h"
+#include "mmc_defs.h"
 
 #define LED_PIN 25
 
@@ -92,6 +95,15 @@ void led_blink(void)
 #define WRITE_FLASH 0x03
 #define READ_FLASH_STREAM 0x04
 
+#define EMMC_DETECT 0x50
+#define EMMC_INIT 0x51
+#define EMMC_GET_CID 0x52
+#define EMMC_GET_CSD 0x53
+#define EMMC_GET_EXT_CSD 0x54
+#define EMMC_READ 0x55
+#define EMMC_READ_STREAM 0x56
+#define EMMC_WRITE 0x57
+
 #define ISD1200_INIT 0xA0
 #define ISD1200_DEINIT 0xA1
 #define ISD1200_READ_ID 0xA2
@@ -112,6 +124,8 @@ struct cmd
 };
 #pragma pack(pop)
 
+bool emmc_detected = false;
+bool stream_emmc = false;
 bool do_stream = false;
 uint32_t stream_offset = 0;
 uint32_t stream_end = 0;
@@ -125,21 +139,40 @@ void stream()
 			return;
 		}
 
-		if (tud_cdc_write_available() < 4 + 0x210)
+		if (tud_cdc_write_available() < 4 + (stream_emmc ? 0x200 : 0x210))
 			return;
 
-		static uint8_t buffer[4 + 0x210];
-		uint32_t ret = xbox_nand_read_block(stream_offset, &buffer[4], &buffer[4 + 0x200]);
-		*(uint32_t *)buffer = ret;
-		if (ret == 0)
+		if (!stream_emmc)
 		{
-			tud_cdc_write(buffer, sizeof(buffer));
-			++stream_offset;
+			static uint8_t buffer[4 + 0x210];
+			uint32_t ret = xbox_nand_read_block(stream_offset, &buffer[4], &buffer[4 + 0x200]);
+			*(uint32_t *)buffer = ret;
+			if (ret == 0)
+			{
+				tud_cdc_write(buffer, sizeof(buffer));
+				++stream_offset;
+			}
+			else
+			{
+				tud_cdc_write(&ret, 4);
+				do_stream = false;
+			}
 		}
 		else
 		{
-			tud_cdc_write(&ret, 4);
-			do_stream = false;
+			static uint8_t buffer[4 + 0x200];
+			int ret = sd_readblocks_sync(&buffer[4], stream_offset, 1);
+			*(uint32_t *)buffer = ret;
+			if (ret == 0)
+			{
+				tud_cdc_write(buffer, sizeof(buffer));
+				++stream_offset;
+			}
+			else
+			{
+				tud_cdc_write(&ret, 4);
+				do_stream = false;
+			}
 		}
 	}
 }
@@ -172,7 +205,7 @@ void tud_cdc_rx_cb(uint8_t itf)
 
 		if (cmd.cmd == GET_VERSION)
 		{
-			uint32_t ver = 2;
+			uint32_t ver = 3;
 			tud_cdc_write(&ver, 4);
 		}
 		else if (cmd.cmd == GET_FLASH_CONFIG)
@@ -199,20 +232,21 @@ void tud_cdc_rx_cb(uint8_t itf)
 		}
 		else if (cmd.cmd == READ_FLASH_STREAM)
 		{
+			stream_emmc = false;
 			do_stream = true;
 			stream_offset = 0;
 			stream_end = cmd.lba;
 		}
 		if (cmd.cmd == ISD1200_INIT)
 		{
-			uint8_t fc = isd1200_init() ? 0 : 1;
-			tud_cdc_write(&fc, 1);
+			uint8_t ret = isd1200_init() ? 0 : 1;
+			tud_cdc_write(&ret, 1);
 		}
 		if (cmd.cmd == ISD1200_DEINIT)
 		{
 			isd1200_deinit();
-			uint8_t fc = 0;
-			tud_cdc_write(&fc, 1);
+			uint8_t ret = 0;
+			tud_cdc_write(&ret, 1);
 		}
 		else if (cmd.cmd == ISD1200_READ_ID)
 		{
@@ -228,8 +262,8 @@ void tud_cdc_rx_cb(uint8_t itf)
 		if (cmd.cmd == ISD1200_ERASE_FLASH)
 		{
 			isd1200_chip_erase();
-			uint8_t fc = 0;
-			tud_cdc_write(&fc, 1);
+			uint8_t ret = 0;
+			tud_cdc_write(&ret, 1);
 		}
 		else if (cmd.cmd == ISD1200_WRITE_FLASH)
 		{
@@ -244,24 +278,86 @@ void tud_cdc_rx_cb(uint8_t itf)
 		else if (cmd.cmd == ISD1200_PLAY_VOICE)
 		{
 			isd1200_play_vp(cmd.lba);
-			uint8_t fc = 0;
-			tud_cdc_write(&fc, 1);
+			uint8_t ret = 0;
+			tud_cdc_write(&ret, 1);
 		}
 		else if (cmd.cmd == ISD1200_EXEC_MACRO)
 		{
 			isd1200_exe_vm(cmd.lba);
-			uint8_t fc = 0;
-			tud_cdc_write(&fc, 1);
+			uint8_t ret = 0;
+			tud_cdc_write(&ret, 1);
 		}
 		if (cmd.cmd == ISD1200_RESET)
 		{
 			isd1200_reset();
-			uint8_t fc = 0;
-			tud_cdc_write(&fc, 1);
+			uint8_t ret = 0;
+			tud_cdc_write(&ret, 1);
 		}
 		else if (cmd.cmd == REBOOT_TO_BOOTLOADER)
 		{
 			reset_usb_boot(0, 0);
+		}
+		else if (cmd.cmd == EMMC_DETECT)
+		{
+			if (!emmc_detected)
+			{
+				gpio_init(MMC_CLK_PIN);
+				gpio_set_dir(MMC_CLK_PIN, GPIO_IN);
+				emmc_detected = gpio_get(MMC_CLK_PIN);
+			}
+			tud_cdc_write(&emmc_detected, 1);
+		}
+		else if (cmd.cmd == EMMC_INIT)
+		{
+			// Put SMC into reset
+			gpio_init(SMC_RST_XDK_N);
+			gpio_set_dir(SMC_RST_XDK_N, GPIO_OUT);
+			gpio_put(SMC_RST_XDK_N, 0);
+
+			uint32_t ret = sd_init();
+			tud_cdc_write(&ret, 4);
+		}
+		else if (cmd.cmd == EMMC_GET_CID)
+		{
+			uint8_t cid_raw[16];
+			sd_read_cid(cid_raw);
+			tud_cdc_write(cid_raw, sizeof(cid_raw));
+		}
+		else if (cmd.cmd == EMMC_GET_CSD)
+		{
+			uint8_t csd_raw[16];
+			sd_read_csd(csd_raw);
+			tud_cdc_write(csd_raw, sizeof(csd_raw));
+		}
+		else if (cmd.cmd == EMMC_GET_EXT_CSD)
+		{
+			uint8_t ext_csd[512];
+			sd_read_ext_csd(ext_csd);
+			tud_cdc_write(ext_csd, sizeof(ext_csd));
+		}
+		else if (cmd.cmd == EMMC_READ)
+		{
+			uint8_t buffer[0x200];
+			int ret = sd_readblocks_sync(buffer, cmd.lba, 1);
+			tud_cdc_write(&ret, 4);
+			if (ret == 0)
+				tud_cdc_write(buffer, sizeof(buffer));
+		}
+		else if (cmd.cmd == EMMC_READ_STREAM)
+		{
+			stream_emmc = true;
+			do_stream = true;
+			stream_offset = 0;
+			stream_end = cmd.lba;
+		}
+		else if (cmd.cmd == EMMC_WRITE)
+		{
+			uint8_t buffer[0x200];
+			uint32_t count = tud_cdc_read(&buffer, sizeof(buffer));
+			if (count != sizeof(buffer))
+				return;
+			uint32_t ret = sd_writeblocks_sync(buffer, cmd.lba, 1);
+			tud_cdc_write(&ret, 4);
 		}
 
 		tud_cdc_write_flush();

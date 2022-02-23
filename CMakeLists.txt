@@ -21,6 +21,7 @@ add_executable(${PROJECT_NAME}
 	pio_spi.c
 	nuvoton_spi.c
 	isd1200.c
+	sdio.c
 )
 
 # Create map/bin/hex/uf2 files
@@ -30,6 +31,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${CMAKE_CURRENT_LIST_DIR})
 
 pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/spi.pio)
+    
+pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/sdio.pio)
 
 # Link to pico_stdlib (gpio, time, etc. functions)
 target_link_libraries(${PROJECT_NAME} 
@@ -37,6 +40,7 @@ target_link_libraries(${PROJECT_NAME}
 	tinyusb_device_unmarked
 	hardware_pio
 	hardware_spi
+	hardware_dma
 )
 
 # Enable usb output, disable uart output
