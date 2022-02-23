@@ -1,4 +1,4 @@
-![PicoFlasher logo](https://raw.githubusercontent.com/balika011/PicoFlasher/master/picoflasher.png)
+![PicoFlasher logo](https://raw.githubusercontent.com/X360Tools/PicoFlasher/master/picoflasher.png)
 
 # PicoFlasher
 
