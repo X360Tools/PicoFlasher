@@ -11,7 +11,7 @@
                 "${userHome}/.pico-sdk/sdk/2.0.0/src/common/pico_base_headers/include/pico.h"
             ],
             "defines": [],
-            "compilerPath": "${userHome}/.pico-sdk/toolchain/RISCV_RPI_2_0_0_5/bin/riscv32-unknown-elf-gcc",
+            "compilerPath": "${userHome}/.pico-sdk/toolchain/13_2_Rel1/bin/arm-none-eabi-gcc",
             "compileCommands": "${workspaceFolder}/build/compile_commands.json",
             "cStandard": "c17",
             "cppStandard": "c++14",

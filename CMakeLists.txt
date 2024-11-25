@@ -5,7 +5,7 @@ else()
     set(USERHOME $ENV{HOME})
 endif()
 set(sdkVersion 2.0.0)
-set(toolchainVersion RISCV_RPI_2_0_0_5)
+set(toolchainVersion 13_2_Rel1)
 set(picotoolVersion 2.0.0)
 set(picoVscode ${USERHOME}/.pico-sdk/cmake/pico-vscode.cmake)
 if (EXISTS ${picoVscode})
@@ -23,7 +23,7 @@ project(PicoFlasher C CXX ASM)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
-set(PICO_PLATFORM rp2350-riscv)
+set(PICO_PLATFORM rp2350-arm-s)
 set(PICO_BOARD pico2 CACHE STRING "Board type")
 
 # Creates a pico-sdk subdirectory in our project for the libraries
