@@ -1,3 +1,5 @@
+- From what I've researched, for PicoFlasher, it's probably best if we take riscv out as the normal arm cores seem to be a lot more performance boosted. I will compile a normal arm core build starting from 1.1.0
+
 ![PicoFlasher logo](https://raw.githubusercontent.com/X360Tools/PicoFlasher/master/picoflasher.png)
 
 # PicoFlasher
